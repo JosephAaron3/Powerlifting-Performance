@@ -20,6 +20,6 @@ if __name__ == "__main__":
         for year,links in urls.items():
             for link in links:
                 if ".htm" in link:
-                    writer.writerow([base_link+str(year)+str(link)])
+                    writer.writerow([base_link+str(year)+"/"+str(link)])
                     count += 1
     print("Found", count, "links")
