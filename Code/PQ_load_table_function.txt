@@ -1,0 +1,12 @@
+(Link)=>
+let
+    Source = Web.Page(Web.Contents(Text.From(Link))),
+    Data0 = Source{0}[Data],
+    #"Changed Type" = Table.TransformColumnTypes(Data0,{{"Column1", type text}, {"Column2", type text}, {"Column3", type text}, {"Column4", type text}, {"Column5", type text}, {"Column6", type text}, {"Column7", type text}, {"Column8", type text}, {"Column9", type text}, {"Column10", type text}, {"Column11", type text}, {"Column12", type text}, {"Column13", type text}, {"Column14", type text}, {"Column15", type text}, {"Column16", type text}, {"Column17", type text}, {"Column18", type text}, {"Column19", type text}, {"Column20", type text}, {"Column21", type text}, {"Column22", type text}, {"Column23", type text}}),
+    #"Removed Top Rows" = Table.Skip(#"Changed Type",3),
+    #"Removed Bottom Rows" = Table.RemoveLastN(#"Removed Top Rows",2),
+    #"Promoted Headers" = Table.PromoteHeaders(#"Removed Bottom Rows", [PromoteAllScalars=true]),
+    #"Removed Other Columns" = Table.SelectColumns(#"Promoted Headers",{"NAME", "DOB", "M/F", "BWT", "SQ 1", "SQ 2", "SQ 3", "BP1", "BP 2", "BP 3", "DL 1", "DL 2", "DL 3", "TOTAL", "WILKS"}),
+    #"Removed Blank Rows" = Table.SelectRows(#"Removed Other Columns", each not List.IsEmpty(List.RemoveMatchingItems(Record.FieldValues(_), {"", null, "DEADLIFT ONLY", "BENCH PRESS", "PUSH / PULL", "Referees:"})))
+in
+    #"Removed Blank Rows"
