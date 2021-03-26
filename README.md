@@ -10,4 +10,5 @@ Scraping Powerlifting Australia competition data from the past 21 years and anal
 - Need to download local copies of html files, and use them as Power Query data sources
 - Cleaning should be easiest in R, so I'll export tabulized data to work with in R
 - There are 38K rows and they're quite heavily varied prior to ~2010, so I might limit need to limit the scope
-- I've planned out the cleaning process to hopefully get most of the data. The general template for the results tables has updated over time, creating groups of template. I've separate these groups for separate cleaning. 
+- I've planned out the cleaning process to hopefully get most of the data. The general template for the results tables has updated over time, creating groups of template. I've separate these groups for separate cleaning.
+- I'll make a new branch for reproducible cleaning procedures. For now, I want to start analysis so I'll do so using a fully cleaned subset of the data (~2/3 rows)
