@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import math
 
 df = pd.read_csv("../../Data/Raw_Full.csv", engine = 'python')
 
@@ -46,6 +47,7 @@ def fix_headers_custom(bad_heads, dfd):
     #Name column called something else (e.g. "Lifter") - 59, 107, 129, 201
     #Header row completely missing - 706
     #Strange format - 829
+    #CompID is just the compId number - All
     for compid in bad_heads:
         if compid in [24, 74, 75, 95, 97, 177, 195, 463]:
             dfd[compid] = dfd[compid].iloc[1:]
@@ -69,11 +71,48 @@ def fix_headers_custom(bad_heads, dfd):
             dfd[compid] = pd.concat([new_row, dfd[compid]])
         elif compid in [829]:
             del dfd[compid]
+            
+    #Fix CompID column
+    for i, cdf in dfd.items():
+        dfd[i] = dfd[i].astype(str)
+        dfd[i].iat[0, 0] = "CompID"
+        if dfd[i].iat[0, 1] == '.':
+            dfd[i].iat[0, 1] = "Place"
     
 def promote_headers(dfd):
     for i, cdf in dfd.items():
         dfd[i].columns = cdf.iloc[0]
         dfd[i] = dfd[i].iloc[1:]
+
+def col_name_count(dfd, names):
+    name_freq = {}
+    for name in names:
+        count = 0
+        ls = []
+        for k, cdf in dfd.items():
+            if name in cdf.columns.to_list():
+                count += 1
+                ls.append(k)
+        name_freq[name] = (count, ls)
+    return name_freq
+
+# def test(dfd, words):
+#     Main = {}
+#     for main in words.columns.to_list():
+#         name_freq = {}
+#         for name in words[main].to_list():
+#             if type(name) == float and math.isnan(name):
+#                 continue
+#             count = 0
+#             ls = []
+#             for k, cdf in dfd.items():
+#                 if name.strip()[1:-1] in cdf.columns.to_list():
+#                     count += 1
+#                     ls.append(k)
+#             name_freq[name] = (count, ls)
+#         Main[main] = name_freq
+#     return Main
+    
 
 if __name__ == "__main__":
     #Read data
@@ -109,3 +148,18 @@ if __name__ == "__main__":
     
     #Promote headers
     promote_headers(dfdict)
+    
+    #Check the full list of headers in each row
+    col_names = []
+    for k, cdf in dfdict.items():
+        col_names.extend(cdf.columns.to_list())
+    print("Headers set: ", sorted(set(col_names))) #Sorted these headers into groups manually (Semantics.csv)
+    
+    #Found count of instances of each of these
+    header_name_freq = col_name_count(dfdict, col_names)
+    # sem = pd.read_csv("../../Data/Semantics.csv", )
+    # testdf = test(dfdict, sem)
+    
+    #By inspection, these mostly appear to be variables, apart from nan, which requires further investigation
+    
+    
