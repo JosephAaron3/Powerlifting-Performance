@@ -148,6 +148,41 @@ def remove_na_col_rest(dfd, na_dict):
     for k in na_dict.keys():
         dfd[k] = dfd[k].loc[:, dfd[k].columns.notnull()]
 
+def check_valid_rows(dfd):
+    #Change some row names to make analysis easier
+    for k in [59, 183, 219, 198, 147]:
+        dfd[k].rename(columns = {'CAT?': 'Class', 'CAT.': 'Class', 'CAT1': 'Class', 
+                                    'Category': 'Class', 'M/W': 'M/F'}, inplace = True)
+    
+    #Tables without sex column to handle separately
+    sex_semantics = ['M/F', 'M / F', 'Sex', 'SEX', 'CAT']
+    no_sex = [k for k in dfd.keys() if not any(substring in dfd[k].columns for substring in sex_semantics)]
+    
+    #Handle M/F and Sex tables
+    for k in dfd:
+        dfd[k].rename(columns = {'M / F': 'M/F', 'Sex': 'M/F', 'SEX': 'M/F'}, inplace = True)
+        if 'M/F' not in dfd[k].columns:
+            continue
+        dfd[k] = dfd[k][dfd[k]['M/F'].str.match('(^[MFmfwW]$)|(^[MF]-)', na = False)]
+        
+    #Sort out cat tables
+    #Assume CAT is weight/age category when M/F column is present, and inspect the rest
+    cat_without_mf = [k for k in dfdict if not 'M/F' in dfdict[k].columns and 'CAT' in dfdict[k].columns]
+    # no_sex.extend(k for k in [j for j in dfdict if 'CAT' in dfdict[j].columns] if k not in cat_without_mf)
+    cat_without_mf_vals = {k: list(dfdict[k]['CAT'].values) for k in cat_without_mf}
+    #By inspection, the following tables don't have sex information in CAT
+    cat_not_mf = {37, 38, 74, 76, 81, 91, 94, 143, 157, 159, 162, 163, 185, 190, 195, 200, 225, 226}
+    no_sex.extend(cat_not_mf)
+    cat_is_mf = set(cat_without_mf) - cat_not_mf
+    
+    #Handle cat tables where cat is mf
+    for k in cat_is_mf:
+        dfd[k].rename(columns = {'CAT': 'M/F'}, inplace = True)
+        dfd[k] = dfd[k][dfd[k]['M/F'].str.match('(^[MFmfwW]$)|(^[MF]-)|(^[MF] -)|(- [MF]$)', na = False)]
+    
+    #Handle no sex tables (39 instances)
+    
+    
 if __name__ == "__main__":
     #Read data
     df = pd.read_csv("../../Data/Raw_Full.csv", engine = 'python')
@@ -230,7 +265,11 @@ if __name__ == "__main__":
     na_dict = na_col_details(dfdict)
     #Now all columns are variables
     
-    
+    #To make all observations rows (and all rows observations), we can find rows without m/f/M/F (or the like) in the column
+    # representing sex (based on headers set), and delete rows with invalid entries. Note some 'CAT' columns have 
+    # sex info, but other variations of cat do not. Also, some 'CAT' columns have weight/age class info, and some tables 
+    # don't have sex info at all. This will all be handled in the following function.
+    check_valid_rows(dfdict)
     
     
     
