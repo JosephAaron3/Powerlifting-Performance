@@ -148,7 +148,7 @@ def remove_na_col_rest(dfd, na_dict):
     for k in na_dict.keys():
         dfd[k] = dfd[k].loc[:, dfd[k].columns.notnull()]
 
-def check_valid_rows(dfd):
+def validate_rows_by_sex(dfd):
     #Change some row names to make analysis easier
     for k in [59, 183, 219, 198, 147]:
         dfd[k].rename(columns = {'CAT?': 'Class', 'CAT.': 'Class', 'CAT1': 'Class', 
@@ -168,7 +168,6 @@ def check_valid_rows(dfd):
     #Sort out cat tables
     #Assume CAT is weight/age category when M/F column is present, and inspect the rest
     cat_without_mf = [k for k in dfdict if not 'M/F' in dfdict[k].columns and 'CAT' in dfdict[k].columns]
-    # no_sex.extend(k for k in [j for j in dfdict if 'CAT' in dfdict[j].columns] if k not in cat_without_mf)
     cat_without_mf_vals = {k: list(dfdict[k]['CAT'].values) for k in cat_without_mf}
     #By inspection, the following tables don't have sex information in CAT
     cat_not_mf = {37, 38, 74, 76, 81, 91, 94, 143, 157, 159, 162, 163, 185, 190, 195, 200, 225, 226}
@@ -180,8 +179,50 @@ def check_valid_rows(dfd):
         dfd[k].rename(columns = {'CAT': 'M/F'}, inplace = True)
         dfd[k] = dfd[k][dfd[k]['M/F'].str.match('(^[MFmfwW]$)|(^[MF]-)|(^[MF] -)|(- [MF]$)', na = False)]
     
-    #Handle no sex tables (39 instances)
+    #Handle no sex tables (39 instances) by inspection
+    to_del = [25, 36, 37, 45, 46, 59, 60, 61, 72, 182, 187, 194, 198, 200] #No sex information
+    to_fix = [k for k in no_sex if k not in to_del]
+    for key in to_del:
+        del dfd[key]
     
+    #Delete bad rows manually
+    dfd[74].drop(index = [2015, 2016, 2017], inplace = True)
+    dfd[76].drop(index = [2103, 2104], inplace = True)
+    dfd[81].drop(index = [2204, 2205], inplace = True)
+    dfd[148].drop(index = [4262, 4282, 4296, 4301, 4315, 4320], inplace = True)
+    dfd[166].drop(index = [4722, 4723, 4732, 4733, 4747, 4748, 4752, 4753, 4775, 4776], inplace = True)
+    dfd[173].drop(index = [4951], inplace = True)
+    #Comp 650 is a big comp with a unique result table layout. This will be handled individually
+    #A row is valid if and only if DOB is an int > 1900
+    dfd[650] = dfd[650][dfd[650]['DOB'].str.isnumeric()]
+    dfd[650] = dfd[650][dfd[650]['DOB'].astype(int) > 1900]
+
+def add_sex(dfd):
+    dfd[38]['M/F'] = ['F']*2 + ['M']*(len(dfd[38]) - 2)
+    dfd[52]['M/F'] = ['F']*2 + ['M']*(len(dfd[52]) - 2)
+    dfd[74]['M/F'] = ['F']*3 + ['M']*(len(dfd[74]) - 3)
+    dfd[76]['M/F'] = ['M']*len(dfd[76]); dfd[76].loc[2072:2083, 'M/F'] = 'F'
+    dfd[81]['M/F'] = ['F']*3 + ['M']*(len(dfd[81]) - 3); dfd[81].loc[2186, 'M/F'] = 'F'; dfd[81].loc[2199, 'M/F'] = 'F'
+    dfd[91]['M/F'] = 'M'
+    dfd[94]['M/F'] = ['M']*len(dfd[94])
+    dfd[143]['M/F'] = ['M']*len(dfd[143])
+    dfd[148]['M/F'] = ['F']*12 + ['M']*(len(dfd[148]) - 12)
+    dfd[157]['M/F'] = ['M']*len(dfd[157]); dfd[157].loc[4469, 'M/F'] = 'F'; dfd[157].loc[4474, 'M/F'] = 'F'
+    dfd[159]['M/F'] = ['F']*1 + ['M']*(len(dfd[159]) - 1)
+    dfd[161]['M/F'] = ['M']*len(dfd[161])
+    dfd[162]['M/F'] = ['M']*len(dfd[162])
+    dfd[163]['M/F'] = ['M', 'M', 'M', 'M', 'F', 'F', 'M']
+    dfd[166]['M/F'] = ['F']*12 + ['M']*(len(dfd[166]) - 12); dfd[166].loc[4749:4750, 'M/F'] = 'F'
+    dfd[173]['M/F'] = ['F']*3 + ['M']*(len(dfd[173]) - 3)
+    dfd[178]['M/F'] = ['M']*len(dfd[178])
+    dfd[185]['M/F'] = ['M']*len(dfd[185])
+    dfd[186]['M/F'] = ['M']*len(dfd[186])
+    dfd[190]['M/F'] = ['M']*len(dfd[190])
+    dfd[195]['M/F'] = ['M']*len(dfd[195]); dfd[195].loc[[5509,5512,5516], 'M/F'] = 'F'
+    dfd[219]['M/F'] = ['F']*3 + ['M']*(len(dfd[219]) - 3)
+    dfd[225]['M/F'] = ['F']*2 + ['M']*(len(dfd[225]) - 2)
+    dfd[226]['M/F'] = ['F']*2 + ['M']*(len(dfd[226]) - 2)
+    dfd[650]['M/F'] = ['M']*len(dfd[650]); dfd[650].loc[22393:22490, 'M/F'] = 'F'; dfd[650].loc[[22552, 22602], 'M/F'] = 'F'
     
 if __name__ == "__main__":
     #Read data
@@ -269,7 +310,11 @@ if __name__ == "__main__":
     # representing sex (based on headers set), and delete rows with invalid entries. Note some 'CAT' columns have 
     # sex info, but other variations of cat do not. Also, some 'CAT' columns have weight/age class info, and some tables 
     # don't have sex info at all. This will all be handled in the following function.
-    check_valid_rows(dfdict)
+    to_fix = validate_rows_by_sex(dfdict)
+    print("Columns to add sex info to:", to_fix)
+    
+    #Add sex info to the columns to fix
+    add_sex(dfdict)
     
     
     
