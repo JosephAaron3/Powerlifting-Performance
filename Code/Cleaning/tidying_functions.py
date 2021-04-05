@@ -79,7 +79,7 @@ def fix_headers_custom(bad_heads, dfd):
         dfd[i].iat[0,0] = -1 #For easy referencing later
         if dfd[i].iat[0, 1] == '.':
             dfd[i].iat[0, 1] = "Place"
-    
+
 def promote_headers(dfd):
     for i, cdf in dfd.items():
         dfd[i].columns = cdf.iloc[0]
@@ -151,8 +151,9 @@ def remove_na_col_rest(dfd, na_dict):
 def validate_rows_by_sex(dfd):
     #Change some row names to make analysis easier
     for k in [59, 183, 219, 198, 147]:
-        dfd[k].rename(columns = {'CAT?': 'Class', 'CAT.': 'Class', 'CAT1': 'Class', 
-                                    'Category': 'Class', 'M/W': 'M/F'}, inplace = True)
+        dfd[k].rename(columns = {'CAT?': 'Class', 'CAT.': 'Division', 'CAT1': 'Division', 'DIV': 'Class', 'DIV.': 'Class',
+                                    'Category': 'Division', 'Division': 'Class', 'M/W': 'M/F'}, inplace = True)
+    dfd[331].rename(columns = {'DIV': 'M/F', 'M/F': 'Division'}, inplace = True)
     
     #Tables without sex column to handle separately
     sex_semantics = ['M/F', 'M / F', 'Sex', 'SEX', 'CAT']
@@ -196,6 +197,8 @@ def validate_rows_by_sex(dfd):
     #A row is valid if and only if DOB is an int > 1900
     dfd[650] = dfd[650][dfd[650]['DOB'].str.isnumeric()]
     dfd[650] = dfd[650][dfd[650]['DOB'].astype(int) > 1900]
+    
+    return to_fix
 
 def add_sex(dfd):
     dfd[38]['M/F'] = ['F']*2 + ['M']*(len(dfd[38]) - 2)
@@ -224,6 +227,145 @@ def add_sex(dfd):
     dfd[226]['M/F'] = ['F']*2 + ['M']*(len(dfd[226]) - 2)
     dfd[650]['M/F'] = ['M']*len(dfd[650]); dfd[650].loc[22393:22490, 'M/F'] = 'F'; dfd[650].loc[[22552, 22602], 'M/F'] = 'F'
     
+def fix_duplicate_colnames(dfd):
+    dup_colname_comps = [k for k, cdf in dfd.items() if len(set(cdf.columns)) != len(cdf.columns)]
+    dup_colname_strings = {k: set(dfd[k].columns[dfd[k].columns.duplicated()]) for k in dup_colname_comps}
+                   
+    #Case 1: Useless 1st+ instance columns - Delete all but last duplicated column
+    #(126, 165*)
+    dfd[126].columns = ['CompID', 'Name', 'M/F', 'BW', 'Wt Class', 'Wilks Coeff.', 'Sq1', 'Sq2', 'Sq3', 'Best Sq', 'DELETE', 'BP1', 'BP2', 'BP3', 'Best BP', 'DELETE', 'Sub Total', 'DELETE', 'DL1', 'DL2', 'DL3', 'Best DL', 'DELETE', 'Total', 'Wilks', 'Place']
+    dfd[126].drop(columns = ['DELETE'], inplace = True)
+    dfd[165].columns = ['CompID', 'NAME', 'DELETE', 'CAT', 'DIV', 'M/F', 'BWT', 'SQUAT1', 'SQUAT2', 'SQUAT3', 'BENCH PRESS1', 'BENCH PRESS2', 'BENCH PRESS3', 'Sub Total', 'DEADLIFT1', 'DEADLIFT2', 'DEADLIFT3', 'Total']
+    dfd[165].drop(columns = ['DELETE'], inplace = True)
+    
+    #Case 2: Lifts aren't numbered  - Add lift number after them
+    #(103, 109, 114, 117, 147, 149, 150, 151, 152, 173, 189, 203, 211, 229, 230, 236, 261)
+    cases = [103, 109, 114, 117, 149, 150, 151, 152, 173, 189, 203, 211, 229, 230, 236, 261]
+    for k in cases:
+        dups = dfd[k].columns[dfd[k].columns.duplicated()]
+        dup_counter = {name: 0 for name in dups}
+        name_list = []
+        for i, col in enumerate(dfd[k].columns):
+            if col not in dups:
+                name_list.append(col)
+            else:
+                dup_counter[col] += 1
+                name_list.append(col + ' ' + str(dup_counter[col]))
+        dfd[k].columns = name_list
+                    
+    
+    #Case 3: Lifts are only numbers - Add lift name before them
+    #(166, 38)
+    dfd[166].columns = ['CompID', 'NR', 'BDW.', 'Cat', 'NAME', 'State', 'SQ 1', 'SQ 2', 'SQ 3', 'Best','BP 1', 'BP 2', 'BP 3', 'SUB.', 'DL 1', 'DL 2', 'DL 3', 'TOT.', 'Wilks', 'PL.', '4. SQ', '4. BP', '4.DL', 'M/F']
+    dfd[38].columns = ['CompID', 'DIV', 'BDW.', 'NAME', 'CAT', 'STATE', 'BP1', 'BP2', 'BP3', 'TOT.', 'PL.', '4TH', 'M/F'] #Not duplicate, but still needs fixing
+    
+    #Case 4: Useless 2nd+ instance columns - Delete all but first duplicated column
+    #(872+)
+    for k in [j for j in dup_colname_comps if j >= 872]:
+        dfd[k].columns = pd.io.parsers.ParserBase({'names':dfd[k].columns})._maybe_dedup_names(dfd[k].columns)
+        dfd[k].drop(list(dfd[k].filter(regex = '\.[1-9]$')), axis = 1, inplace = True)
+    
+    
+    #Case 5: Column named wrong - Rename column
+    #(366, 237*, 239*)
+    dfd[366].columns = ['CompID', 'NAME', 'M/F', 'DIV', 'CLASS', 'BWT', 'SQ 1', 'SQ 2', 'SQ 3', 'BP 1', 'BP 2', 'BP 3', 'DL 1', 'DL 2', 'DL 3', 'TOTAL', 'WILKS']
+    dfd[237].columns = ['CompID', 'NAME', 'DIV', 'M/F', 'BWT', 'CLASS', 'BP 1', 'BP 1o', 'BP 2', 'BP 2o', 'BP 3', 'BP 3o', 'Total', 'Wilks?', 'Place']
+    dfd[239].columns = ['CompID', 'NAME', 'DIV', 'M/F', 'BWT', 'CLASS', 'SQ 1', 'SQ 1o', 'SQ 2', 'SQ 2o', 'SQ 3', 'SQ 3o', 'BP 1', 'BP 1o', 'BP 2', 'BP 2o', 'BP 3', 'BP 3o', 'DL 1', 'DL 1o', 'DL 2', 'DL 2o', 'DL 3', 'DL 3o', 'Total', 'Wilks Total', 'Place']
+
+    #Case 6: 2nd instance column has lift outcome - Merge with 1st column
+    #(237*, 239*)
+    dfd[237]['BP 1'] = dfd[237]['BP 1'] + dfd[237]['BP 1o'].fillna('')
+    dfd[237]['BP 2'] = dfd[237]['BP 2'] + dfd[237]['BP 2o'].fillna('')
+    dfd[237]['BP 3'] = dfd[237]['BP 3'] + dfd[237]['BP 3o'].fillna('')
+    dfd[237].drop(columns = ["BP 1o", "BP 2o", "BP 3o"], inplace = True)
+    
+    for lift in [i + ' ' + j for i in ['SQ', 'BP', 'DL'] for j in ['1', '2', '3']]:
+        dfd[239][lift] = dfd[239][lift] + dfd[239][lift + 'o'].fillna('')
+        dfd[239].drop(columns = [lift + 'o'], inplace = True)
+    
+    #Case 7: Bodyweight columns separated by sex - Merge
+    #(157, 195, 225, 226)
+    dfd[157]['MBW'] = dfd[157]['MBW'].fillna('') + dfd[157]['FBWT'].fillna(''); dfd[157].drop(columns = ['FBWT'], inplace = True)
+    dfd[195]['MBW'] = dfd[195]['MBW'].fillna('') + dfd[195]['FBWT'].fillna(''); dfd[195].drop(columns = ['FBWT'], inplace = True)
+    dfd[225]['Male Body Wt (kg)'] = dfd[225]['Male Body Wt (kg)'].fillna('') + dfd[225]['Female Body Weight (kg)'].fillna(''); dfd[225].drop(columns = ['Female Body Weight (kg)'], inplace = True)
+    dfd[226]['Male Body Wt (kg)'] = dfd[226]['Male Body Wt (kg)'].fillna('') + dfd[226]['Female Body Weight (kg)'].fillna(''); dfd[226].drop(columns = ['Female Body Weight (kg)'], inplace = True)
+    
+    #Special cases - Fix manually
+    #(147, 222)
+    dfd[147].columns = ['CompID', 'M/F', 'Class', 'BW', 'Name', 'SQ 1', 'SQ 2', 'SQ 3', 'Best SQ', 'BP 1', 'BP 2', 'BP 3', 'Best BP', 'Sub.', 'DL 1', 'DL 2', 'DL 3', 'Best DL', 'Tot.', 'Points', 'Place', 'SQ', 'BP', 'DL']
+    dfd[147].drop(columns = ['SQ', 'BP', 'DL'], inplace = True)
+    dfd[222].drop(columns = ['MWILKS'], inplace = True)
+    
+def homogenize_column_contents(dfd):
+    mixed_col_names = ['DIV', 'Div', 'Cat', 'CAT', 'CLASS'] #These names have mixed meanings across tables
+    #We will change these to either DivisionCustom or ClassCustom (to avoid duplicate headers)
+    
+    #Special cases
+    dfd[11].loc[440:442, 'CAT'] = dfd[11].loc[440:442, 'DIV']
+    dfd[11].loc[440:442, 'DIV'] = ['Open']*3
+    dfd[210].loc[5870, 'DIV'] = 'J'; dfd[210]['ClassCustom'] = '100'; dfd[210].rename(columns = {'DIV': 'DivisionCustom'}, inplace = True)
+    dfd[216].loc[5956, 'DIV'] = 'SJ'; dfd[216]['ClassCustom'] = '60'; dfd[216].rename(columns = {'DIV': 'DivisionCustom'}, inplace = True)
+    dfd[221].loc[6083, 'DIV'] = 'J'; dfd[221]['ClassCustom'] = '100'; dfd[221].rename(columns = {'DIV': 'DivisionCustom'}, inplace = True)
+    dfd[54].drop(columns = ['Cat'], inplace = True)
+    dfd[218].rename(columns = {'GROUP': 'DivisionCustom'}, inplace = True)
+    dfd[197].rename(columns = {'Wt': 'BWT'}, inplace = True)
+    
+    #Div
+    for k in [k for k in dfdict if 'Div' in dfdict[k].columns]:
+        if k not in [49, 68, 420]:
+            dfd[k].rename(columns = {'Div': 'ClassCustom'}, inplace = True)
+        else:
+            dfd[k].rename(columns = {'Div': 'DivisionCustom'}, inplace = True)
+    
+    #CLASS
+    dfd[270].drop(columns = ['CLASS'], inplace = True)
+    dfd[310].rename(columns = {'DIV': 'ClassCustom', 'CLASS': 'DivisionCustom'}, inplace = True)
+    for k in [k for k in dfdict if 'CLASS' in dfdict[k].columns]:
+        dfd[k].rename(columns = {'CLASS': 'ClassCustom'}, inplace = True)
+    
+    #Cat
+    for k in [k for k in dfdict if 'Cat' in dfdict[k].columns]:
+        if k in [49, 68, 166, 197]:
+            dfd[k].rename(columns = {'Cat': 'ClassCustom'}, inplace = True)
+        else:
+            dfd[k].rename(columns = {'Cat': 'DivisionCustom'}, inplace = True)
+    
+    #CAT
+    for k in [k for k in dfdict if 'CAT' in dfdict[k].columns]:
+        if k in [11, 16, 21, 23, 26, 32, 33, 81, 174, 225, 226]:
+            dfd[k].rename(columns = {'CAT': 'ClassCustom'}, inplace = True)
+        else:
+            dfd[k].rename(columns = {'CAT': 'DivisionCustom'}, inplace = True)
+
+    #DIV
+    for k in [k for k in dfdict if 'DIV' in dfdict[k].columns]:
+        if k < 237 or k > 400:
+            if k in [11, 16, 21, 23, 26, 32, 33, 81, 422, 431, 443]:
+                dfd[k].rename(columns = {'DIV': 'DivisionCustom'}, inplace = True)
+            else:
+                dfd[k].rename(columns = {'DIV': 'ClassCustom'}, inplace = True)
+        else:
+            if k in [241, 242, 266, 276, 310, 320, 355, 360, 364, 370]:
+                dfd[k].rename(columns = {'DIV': 'ClassCustom'}, inplace = True)
+            else:
+                dfd[k].rename(columns = {'DIV': 'DivisionCustom'}, inplace = True)
+
+def homogenize_header_names(dfd):
+    semdf = pd.read_csv("../../Data/Semantics.csv", engine = 'python')
+    
+    #Map words to semantic meaning
+    semdict = {tuple(semdf[semdf[col].notnull()][col]): col for col in semdf.columns}
+    semmap = {}
+    for k, v in semdict.items():
+        for key in k:
+            semmap[key] = v
+    
+    #Change header names
+    for k in dfd:
+        dfd[k].rename(columns = semmap, inplace = True)
+        if 'Misc.' in dfd[k].columns:
+            dfd[k].drop(columns = ['Misc.'], inplace = True)
+
 if __name__ == "__main__":
     #Read data
     df = pd.read_csv("../../Data/Raw_Full.csv", engine = 'python')
@@ -305,7 +447,7 @@ if __name__ == "__main__":
     #Recheck na columns
     na_dict = na_col_details(dfdict)
     #Now all columns are variables
-    
+
     #To make all observations rows (and all rows observations), we can find rows without m/f/M/F (or the like) in the column
     # representing sex (based on headers set), and delete rows with invalid entries. Note some 'CAT' columns have 
     # sex info, but other variations of cat do not. Also, some 'CAT' columns have weight/age class info, and some tables 
@@ -316,16 +458,23 @@ if __name__ == "__main__":
     #Add sex info to the columns to fix
     add_sex(dfdict)
     
+    #Ensure each dataframe has no duplicated column names
+    fix_duplicate_colnames(dfdict)
+
+    #Homogenize contents of divison, category, and class columns
+    homogenize_column_contents(dfdict)
     
+    #Homogenize header names
+    homogenize_header_names(dfdict)
     
+    #Concatenate all dataframes
+    final = pd.concat([cdf for cdf in dfdict.values()], ignore_index=True, sort=False)
     
+    #Check no loss of information
+    print("Non-nulls in dfdict:", sum([cdf.notnull().sum().sum() for cdf in dfdict.values()]))
+    print("Non-nulls in final:", final.notnull().sum().sum())
+    print("# unique columns in dfdict:", len(set(sum([list(cdf.columns) for cdf in dfdict.values()], []))))
+    print("# columns in final:", len(set(final.columns)))
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    #Save tidy data
+    final.to_csv("../../Data/Tidy_Full.csv", index_label = 'Index')
