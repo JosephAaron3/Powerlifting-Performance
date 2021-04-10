@@ -309,6 +309,7 @@ def homogenize_column_contents(dfd):
     dfd[54].drop(columns = ['Cat'], inplace = True)
     dfd[218].rename(columns = {'GROUP': 'DivisionCustom'}, inplace = True)
     dfd[197].rename(columns = {'Wt': 'BWT'}, inplace = True)
+    dfd[104].rename(columns = {'WEIGHT': 'Best BP'}, inplace = True)
     
     #Div
     for k in [k for k in dfdict if 'Div' in dfdict[k].columns]:
