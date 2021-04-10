@@ -64,8 +64,8 @@ def fix_headers_custom(bad_heads, dfd):
         elif compid in [59, 107, 129, 201]:
             dfd[compid].iat[0, 1] = "NAME"
         elif compid in [706]:
-            new_row = pd.DataFrame({'CompID': 706, 'Column3': "NAME", 'Column4': "DOB", 
-                                   'Column5': "SEX", 'Column6': "BWT",
+            new_row = pd.DataFrame({'CompID': 706, 'Column2': "Place", 'Column3': "NAME",
+                                    'Column4': "DOB", 'Column5': "SEX", 'Column6': "BWT",
                                     'Column7': "SQ1", 'Column9': "SQ2", 'Column11': "SQ3",
                                      'Column13': "BP1", 'Column15': "BP2", 'Column17': "BP3",
                                      'Column19': "DL1", 'Column21': "DL2", 'Column23': "DL3",
@@ -116,15 +116,15 @@ def handle_na_cols_custom(dfd):
     manual_cases = [(45, 'Best', 'Delete'),
     (61, 'Best', 'Delete', 'Delete'),
     (64, 'Delete'),
-    (72, 'TOTAL', 'Delete', 'Delete', 'WILKS'),
+    (72, 'TOTAL', 'Place', 'Delete', 'WILKS'),
     (103, 'Squat', 'Delete', 'Deadlift', 'Delete'),
     (110, 'Delete', 'Delete'),
     (114, 'Squat', 'Delete', 'Deadlift', 'Delete'),
     (117, 'Squat', 'Squat', 'Bench', 'Bench', 'Deadlift', 'Deadlift', 'Delete', 'Delete', 'Delete', 'Delete'),
-    (140, 'Delete'),
+    (140, 'Place'),
     (147, 'Squat', 'Squat', 'Delete', 'Bench', 'Bench', 'Delete', 'Deadlift', 'Deadlift', 'Delete'),
     (166, 'Best'),
-    (411, 'Delete', 'Delete')]
+    (411, 'Place', 'Delete')]
     
     for case in manual_cases:
         case_no = case[0]
@@ -137,12 +137,12 @@ def handle_na_cols_custom(dfd):
             else:
                 dfd[case_no].rename(columns = {'ToBeChanged'+str(num): col}, inplace = True)
 
-def remove_na_col1(dfd, na_dict):
+def rename_na_col1(dfd, na_dict):
     for k, ls in na_dict.items():
         if 1 in ls:
-            keep_cols = list(range(len(dfd[k].columns)))
-            keep_cols.remove(1)
-            dfd[k] = dfd[k].iloc[:, keep_cols]
+            col_names = dfd[k].columns.to_list()
+            col_names[1] = 'Place'
+            dfd[k].columns = col_names
     
 def remove_na_col_rest(dfd, na_dict):
     for k in na_dict.keys():
@@ -310,6 +310,7 @@ def homogenize_column_contents(dfd):
     dfd[218].rename(columns = {'GROUP': 'DivisionCustom'}, inplace = True)
     dfd[197].rename(columns = {'Wt': 'BWT'}, inplace = True)
     dfd[104].rename(columns = {'WEIGHT': 'Best BP'}, inplace = True)
+    dfd[738]['Place'] = ['1', '1', '2', '1', '1', '2', '3', '1', '2', '1', '2', '1', '2', '1', '1', '1', '2', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '2', '3', '1', '2', '1', '1', '2', '3', '1', '1', '2', '1', '1', '2', '3', '1', '2', '1', '1', '2', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1']
     
     #Div
     for k in [k for k in dfdict if 'Div' in dfdict[k].columns]:
@@ -421,7 +422,7 @@ if __name__ == "__main__":
     na_dict = na_col_details(dfdict)
     #Also, most na cols are in the latter half of the comps
     
-    #Handle the na columns by either removing or renaming. Note that 505/517 (Comp 454+) are of very similar format,
+    #Handle the na columns by either removing or renaming. Note that 505-517 (of Comp 454+) are of very similar format,
     # so I'll deal with the first 12 individually then handle the others together
     handle_na_cols_custom(dfdict) #NOTE: Data-specific implementation
     
@@ -430,10 +431,10 @@ if __name__ == "__main__":
     #Most of these only have NA in column 1, which is place column. Let's verify this
     
     vals_in_col1 = {k: list(dfdict[k].iloc[:, [1]].values.flatten()) for k, ls in na_dict.items() if 1 in ls}
-    #By inspection, all column 1 na columns are placings and can be removed
+    #By inspection, all column 1 na columns are placings and can be renamed
     
-    #Remove na columns occuring in column 1
-    remove_na_col1(dfdict, na_dict)
+    #Rename na columns occuring in column 1
+    rename_na_col1(dfdict, na_dict)
     
     #Recheck na columns
     na_dict = na_col_details(dfdict)
