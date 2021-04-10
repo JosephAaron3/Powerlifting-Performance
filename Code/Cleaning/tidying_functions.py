@@ -311,6 +311,8 @@ def homogenize_column_contents(dfd):
     dfd[197].rename(columns = {'Wt': 'BWT'}, inplace = True)
     dfd[104].rename(columns = {'WEIGHT': 'Best BP'}, inplace = True)
     dfd[738]['Place'] = ['1', '1', '2', '1', '1', '2', '3', '1', '2', '1', '2', '1', '2', '1', '1', '1', '2', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '2', '3', '1', '2', '1', '1', '2', '3', '1', '1', '2', '1', '1', '2', '3', '1', '2', '1', '1', '2', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1']
+    dfd[148].loc[4263:4319, 'TOTAL'] = dfd[148].loc[4263:4319, 'PLACE']
+    dfd[148].loc[4263:4319, 'PLACE'] = np.nan
     
     #Div
     for k in [k for k in dfdict if 'Div' in dfdict[k].columns]:
