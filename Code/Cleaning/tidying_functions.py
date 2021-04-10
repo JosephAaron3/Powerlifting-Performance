@@ -313,6 +313,11 @@ def homogenize_column_contents(dfd):
     dfd[738]['Place'] = ['1', '1', '2', '1', '1', '2', '3', '1', '2', '1', '2', '1', '2', '1', '1', '1', '2', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '2', '3', '1', '2', '1', '1', '2', '3', '1', '1', '2', '1', '1', '2', '3', '1', '2', '1', '1', '2', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1']
     dfd[148].loc[4263:4319, 'TOTAL'] = dfd[148].loc[4263:4319, 'PLACE']
     dfd[148].loc[4263:4319, 'PLACE'] = np.nan
+    for i in [dfd[269].columns.get_loc('BP 1'), dfd[269].columns.get_loc('BP 2'), dfd[269].columns.get_loc('BP 3')]:
+        dfd[269].loc[7004:7031, dfd[269].columns[i+6]] = dfd[269].loc[7004:7031, dfd[269].columns[i]]
+    for i in [dfd[269].columns.get_loc('SQ 1'), dfd[269].columns.get_loc('SQ 2'), dfd[269].columns.get_loc('SQ 3')]:
+        dfd[269].loc[7004:7031, dfd[269].columns[i+3]] = dfd[269].loc[7004:7031, dfd[269].columns[i]]
+        dfd[269].loc[7004:7031, dfd[269].columns[i]] = np.nan
     
     #Div
     for k in [k for k in dfdict if 'Div' in dfdict[k].columns]:
