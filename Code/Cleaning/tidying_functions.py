@@ -318,6 +318,12 @@ def homogenize_column_contents(dfd):
     for i in [dfd[269].columns.get_loc('SQ 1'), dfd[269].columns.get_loc('SQ 2'), dfd[269].columns.get_loc('SQ 3')]:
         dfd[269].loc[7004:7031, dfd[269].columns[i+3]] = dfd[269].loc[7004:7031, dfd[269].columns[i]]
         dfd[269].loc[7004:7031, dfd[269].columns[i]] = np.nan
+        
+    for i in [dfd[238].columns.get_loc('BP1'), dfd[238].columns.get_loc('BP 2')]:
+        dfd[238].loc[6367:6389, dfd[238].columns[i+6]] = dfd[238].loc[6367:6389, dfd[238].columns[i]]
+    for i in [dfd[238].columns.get_loc('SQ 1'), dfd[238].columns.get_loc('SQ 2'), dfd[238].columns.get_loc('SQ 3')]:
+        dfd[238].loc[6367:6389, dfd[238].columns[i+3]] = dfd[238].loc[6367:6389, dfd[238].columns[i]]
+        dfd[238].loc[6367:6389, dfd[238].columns[i]] = np.nan
     
     #Div
     for k in [k for k in dfdict if 'Div' in dfdict[k].columns]:
@@ -456,7 +462,7 @@ if __name__ == "__main__":
     #Recheck na columns
     na_dict = na_col_details(dfdict)
     #Now all columns are variables
-
+    
     #To make all observations rows (and all rows observations), we can find rows without m/f/M/F (or the like) in the column
     # representing sex (based on headers set), and delete rows with invalid entries. Note some 'CAT' columns have 
     # sex info, but other variations of cat do not. Also, some 'CAT' columns have weight/age class info, and some tables 
@@ -469,7 +475,7 @@ if __name__ == "__main__":
     
     #Ensure each dataframe has no duplicated column names
     fix_duplicate_colnames(dfdict)
-
+    
     #Homogenize contents of divison, category, and class columns
     homogenize_column_contents(dfdict)
     
