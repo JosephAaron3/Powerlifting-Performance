@@ -388,7 +388,7 @@ if __name__ == "__main__":
     #Separate links and save as separated CSV
     comp_links, df = separate_links(df)
     comp_links.to_csv("../../Data/Comp_Links.csv", index = False)
-    
+    asd
     #Remove school competitions
     df = df[~df['CompID'].isin(check_for_substrings(["School"], comp_links))]
     
