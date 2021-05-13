@@ -76,7 +76,7 @@ examine the change in TotalKg distribution over time. This allows us to visually
 variablity (relative slopes of the lines), and skewness (difference in distances between lines).  
 ![TotalKg_time_male](/Output/TotalKg_time_male.png)  
 **Observations:**
-- There is very little change over time of the distribution with regards to centrality, variability and skewness.
+- There is very little change over time of the distribution with regards to centrality (Linear regression coefficient = 0.0003 (R^2 = 0.0033)), variability and skewness.
 - Although variance appears to decrease (more stable estimation of quantiles), this is just a result of an increasing competitor count. The red line shows the standard deviation, which does not decrease significantly.
 
 We can do a year-wise comparison of means. I first used one-way ANOVA followed by Welch's test. I assumed normality of the distributions due to CLT, 
@@ -87,7 +87,7 @@ Welch, being pairwise, gave a better indicator of differences. Most null-rejecte
 Now we shift our attention to females (equivalent filtering as above otherwise)  
 ![TotalKg_time_female](/Output/TotalKg_time_female.png)  
 **Observations:**
-- The distribution is clearly shifting positively over time, indicating increased performance at all levels by the females.
+- The distribution is clearly shifting positively over time (Linear regression coefficient = 0.0121 (R^2 = 0.7912)), indicating increased performance at all levels by the females.
 - Variance is again not changing significantly.
 - Due to limited numbers in the early days, the quantile estimations are very erratic prior to ~2008, so any comparisons by statistical inference before this time may be less reliable (with the methods used here).
 
