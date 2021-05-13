@@ -8,7 +8,7 @@ from sklearn import linear_model
 
 # Read data and separate group of interest
 df = pd.read_csv("../../Data/OP_Cleaned.csv", index_col=0, parse_dates=['Date'])
-dfg = df.loc[(df['Event'] == 'SBD') & (df['Sex'] == 'F') & (df['Equipment'] == 'Raw')
+dfg = df.loc[(df['Event'] == 'SBD') & (df['Sex'] == 'M') & (df['Equipment'] == 'Raw')
              & (df.Date.dt.year >= 1996) & (df.Date.dt.year < 2020) & (df['AgeClass'] == '24-34')]
 dfg = dfg.set_index('Date')
 
@@ -30,9 +30,9 @@ print("Coefficient =", lrMid.coef_[0], f"(R^2 = {lrMid.score(X, MidQ.values)})")
 
 # Plot rolling quantiles
 fig = plt.figure(figsize=(10, 10))
-legend_elements = [lines.Line2D([0], [0], color='blue', lw=4, label='90th quantile'),
-                   lines.Line2D([0], [0], color='orange', lw=4, label='50th quantile'),
-                   lines.Line2D([0], [0], color='green', lw=4, label='10th quantile'),
+legend_elements = [lines.Line2D([0], [0], color='blue', lw=4, label='90% quantile'),
+                   lines.Line2D([0], [0], color='orange', lw=4, label='50% quantile'),
+                   lines.Line2D([0], [0], color='green', lw=4, label='10% quantile'),
                    lines.Line2D([0], [0], color='red', lw=4, label='Standard deviation')]
 plt.ylabel('TotalKg')
 plt.title("Rolling quantiles (180 days) - Female lifters")
